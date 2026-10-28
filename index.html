@@ -131,6 +131,9 @@ input[type="month"]{-webkit-appearance:none;appearance:none;min-height:40px;text
 .top .card h2{font-size:14px;margin-bottom:6px}
 .top .cv{height:300px}
 }
+li.it.paid{background:color-mix(in srgb,var(--ok) 22%,transparent);border:1px solid var(--ok);border-radius:10px;padding:10px;margin:3px 0}
+.pay{flex:none;padding:4px 10px;font-size:13px}
+li.it.paid .pay{border-color:var(--ok);color:var(--ink)}
 </style>
 </head>
 <body>
@@ -238,7 +241,7 @@ const now=new Date(), today=now.getFullYear()*12+now.getMonth();
 const mq=matchMedia("(max-width:860px)");
 let cur=Math.max(today,2026*12+10), S={salary:{},items:[]}, ch1, ch2;
 let uid=null,ref=null,unsub=null,saveT=null,dirty=false,ver=0;
-const normalize=()=>{S=S&&typeof S==="object"?S:{};S.salary=S.salary||{};S.items=S.items||[];S.plan=S.plan||{fixos:50,guardar:20,lazer:15,trab:15};S.goals=S.goals||[];S.saved=S.saved||{};S.mig1=true;S.mig2=true};
+const normalize=()=>{S=S&&typeof S==="object"?S:{};S.salary=S.salary||{};S.items=S.items||[];S.plan=S.plan||{fixos:50,guardar:20,lazer:15,trab:15};S.goals=S.goals||[];S.saved=S.saved||{};S.paid=S.paid||{};S.mig1=true;S.mig2=true};
 const save=()=>{
   if(!ref)return;
   dirty=true;const n=++ver;clearTimeout(saveT);$("#sync").textContent="Salvando...";
@@ -269,7 +272,7 @@ function render(){
   $("#salhint").textContent=sal.v?(sal.inherited?"Repetindo o último salário informado. Edite para mudar só este mês.":"Salário salvo para este mês."):"Digite o valor e ele será salvo automaticamente.";
 
   const mine=S.items.filter(it=>active(it,cur));
-  $("#list").innerHTML=mine.length?mine.map(it=>`<li class="it"><span class="dot" style="background:${CATS[it.cat]}"></span><div class="grow"><div>${esc(it.desc)}${it.n>1?`<span class="tag">${cur-it.start+1}/${it.n}</span>`:""}${it.fixed?`<span class="tag">Fixa</span>`:""}</div><div class="sub">${it.cat}${it.n>1?` · total ${brl(it.total)} em ${it.n}×`:""}</div></div><b>${brl(per(it))}</b><button class="x" data-del="${it.id}" aria-label="Excluir">×</button></li>`).join(""):`<div class="empty">Nenhuma despesa neste mês. Adicione a primeira ao lado.</div>`;
+  $("#list").innerHTML=mine.length?mine.map(it=>{const pd=!!S.paid[it.id+":"+cur];return `<li class="it${pd?" paid":""}"><span class="dot" style="background:${CATS[it.cat]}"></span><div class="grow"><div>${esc(it.desc)}${it.n>1?`<span class="tag">${cur-it.start+1}/${it.n}</span>`:""}${it.fixed?`<span class="tag">Fixa</span>`:""}</div><div class="sub">${it.cat}${it.n>1?` · total ${brl(it.total)} em ${it.n}×`:""}</div></div><b>${brl(per(it))}</b><button class="pay" data-pay="${it.id}" aria-pressed="${pd}">${pd?"Não pago":"Pago"}</button><button class="x" data-del="${it.id}" aria-label="Excluir">×</button></li>`}).join(""):`<div class="empty">Nenhuma despesa neste mês. Adicione a primeira ao lado.</div>`;
 
   const fut=S.items.filter(it=>it.n>1&&it.start+it.n-1>=cur).sort((a,b)=>(a.start+a.n)-(b.start+b.n));
   $("#inst").innerHTML=fut.length?fut.map(it=>{
@@ -312,7 +315,8 @@ $("#add").onclick=()=>{
   save();$("#d").value="";$("#v").value="";$("#n").value=1;$("#fx").checked=false;$("#n").disabled=false;$("#vl").textContent="Valor (R$)";hint();render();
 };
 $("#salin").addEventListener("input",e=>{const v=parseFloat(e.target.value);if(isNaN(v))delete S.salary[cur];else S.salary[cur]=v;save();render()});
-document.addEventListener("click",e=>{const b=e.target.closest("[data-del]");if(b){S.items=S.items.filter(it=>it.id!=b.dataset.del);save();render()}});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-del]");if(b){const id=b.dataset.del;S.items=S.items.filter(it=>it.id!=id);Object.keys(S.paid).forEach(k=>{if(k.startsWith(id+":"))delete S.paid[k]});save();render()}
+  const pb=e.target.closest("[data-pay]");if(pb){const k=pb.dataset.pay+":"+cur;if(S.paid[k])delete S.paid[k];else S.paid[k]=true;save();render()}});
 $("#prev").onclick=()=>{cur--;$("#s").value=toVal(cur);render()};
 $("#next").onclick=()=>{cur++;$("#s").value=toVal(cur);render()};
 const GRP={Moradia:"fixos",Alimentação:"fixos",Transporte:"fixos",Saúde:"fixos",Lazer:"lazer",Compras:"lazer",Outros:"lazer",Educação:"trab",Trabalho:"trab"};
