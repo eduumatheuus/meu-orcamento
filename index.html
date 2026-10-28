@@ -105,6 +105,18 @@ li.it:last-child{border:0}
 dialog{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;width:calc(100% - 32px);max-width:520px;padding:18px}
 dialog::backdrop{background:rgba(0,0,0,.55)}
 #bkt{width:100%;height:160px;font:12px/1.4 ui-monospace,monospace;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--in);color:var(--ink)}
+input,select{min-width:0;max-width:100%}
+input[type="month"]{-webkit-appearance:none;appearance:none;min-height:40px;text-align:left;display:block}
+@media (max-width:860px){
+.top{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;align-items:start}
+.top .hero{margin:0;padding:14px;gap:10px;grid-template-columns:1fr;align-items:start;min-width:0}
+.top .hero .big{font-size:clamp(22px,7vw,30px)}
+.top .hero .mid{font-size:17px}
+.top .hero small{font-size:11.5px}
+.top .card{margin:0;padding:12px;min-width:0}
+.top .card h2{font-size:14px;margin-bottom:6px}
+.top .cv{height:300px}
+}
 </style>
 </head>
 <body>
@@ -126,12 +138,12 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
     <div class="hr"><button class="sw" id="theme" role="switch" aria-checked="true"><span>Modo escuro</span><span class="track"><i></i></span></button><span class="sub" id="who"></span><span class="sub" id="sync"></span><button id="bkbtn">Backup</button><button id="logout">Sair</button></div>
   </header>
 
-  <section class="hero">
+  <div class="top" id="top"><section class="hero">
     <div><small>Sobra no mês (depois das despesas e do que você guardou)</small><div class="big" id="saldo"></div><div class="bar"><i id="usedbar"></i></div><small id="usedtxt" style="margin-top:6px"></small></div>
     <div><small>Salário</small><div class="mid" id="sal"></div></div>
     <div><small>Despesas</small><div class="mid" id="exp"></div></div>
     <div><small>Guardado e investido</small><div class="mid" id="svh"></div></div>
-  </section>
+  </section></div>
 
   <div class="grid">
     <aside>
@@ -173,7 +185,7 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
 
     <main>
       <div class="charts">
-        <div class="card"><h2>Para onde vai o dinheiro</h2><div class="cv"><canvas id="ch1"></canvas></div></div>
+        <div class="card" id="cardch1"><h2>Para onde vai o dinheiro</h2><div class="cv"><canvas id="ch1"></canvas></div></div>
         <div class="card"><h2>Próximos 6 meses</h2><div class="cv"><canvas id="ch2"></canvas></div></div>
       </div>
       <div class="card"><h2>Divisão segura do mês</h2><div class="sub legend">Ajuste as porcentagens ao seu jeito. A reserva de guardar/investir é separada antes de qualquer compra.</div><div class="bks" id="buckets"></div></div>
@@ -209,6 +221,7 @@ const short=i=>MES[i%12].slice(0,3);
 const toIdx=v=>{const[a,b]=v.split("-");return +a*12+(+b-1)};
 const toVal=i=>Math.floor(i/12)+"-"+String(i%12+1).padStart(2,"0");
 const now=new Date(), today=now.getFullYear()*12+now.getMonth();
+const mq=matchMedia("(max-width:860px)");
 let cur=Math.max(today,2026*12+10), S={salary:{},items:[]}, ch1, ch2;
 let uid=null,ref=null,unsub=null,saveT=null,dirty=false,ver=0;
 const normalize=()=>{S=S&&typeof S==="object"?S:{};S.salary=S.salary||{};S.items=S.items||[];S.plan=S.plan||{fixos:50,guardar:20,lazer:15,trab:15};S.goals=S.goals||[];S.saved=S.saved||{};S.mig1=true;S.mig2=true};
@@ -263,7 +276,7 @@ function charts(salV){
   const tot={};S.items.filter(it=>active(it,cur)).forEach(it=>tot[it.cat]=(tot[it.cat]||0)+per(it));
   const sv=savedOf(cur);if(sv>0)tot["Guardado/investido"]=sv;const ks=Object.keys(tot);
   ch1&&ch1.destroy();
-  ch1=new Chart($("#ch1"),{type:"doughnut",data:{labels:ks.length?ks:["Sem despesas"],datasets:[{data:ks.length?ks.map(k=>tot[k]):[1],backgroundColor:ks.length?ks.map(k=>CATS[k]||"#3a86ff"):[css.getPropertyValue("--line").trim()],borderWidth:0}]},options:{maintainAspectRatio:false,cutout:"62%",plugins:{legend:{position:"bottom",labels:{boxWidth:10}},tooltip:{enabled:ks.length>0,callbacks:{label:c=>` ${c.label}: ${brl(c.parsed)}`}}}}});
+  ch1=new Chart($("#ch1"),{type:"doughnut",data:{labels:ks.length?ks:["Sem despesas"],datasets:[{data:ks.length?ks.map(k=>tot[k]):[1],backgroundColor:ks.length?ks.map(k=>CATS[k]||"#3a86ff"):[css.getPropertyValue("--line").trim()],borderWidth:0}]},options:{maintainAspectRatio:false,cutout:"62%",plugins:{legend:{position:"bottom",labels:{boxWidth:10,font:{size:mq.matches?10:12},padding:mq.matches?6:10}},tooltip:{enabled:ks.length>0,callbacks:{label:c=>` ${c.label}: ${brl(c.parsed)}`}}}}});
   const idx=[...Array(6).keys()].map(k=>cur+k);
   ch2&&ch2.destroy();
   ch2=new Chart($("#ch2"),{data:{labels:idx.map(short),datasets:[
@@ -443,6 +456,8 @@ if(notReady){
     }
   });
 }
+function place(){const c=$("#cardch1");if(mq.matches)$("#top").appendChild(c);else document.querySelector(".charts").prepend(c);if(ch1)ch1.resize()}
+mq.addEventListener("change",()=>{place();render()});place();
 calc();
 </script>
 </body>
